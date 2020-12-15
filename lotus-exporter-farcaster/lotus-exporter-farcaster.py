@@ -25,7 +25,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-
+import configparser
 import urllib.request
 from urllib.parse import urlparse
 from pathlib import Path
@@ -33,7 +33,7 @@ import json
 import time
 import sys
 import socket
-import toml
+
 
 VERSION = "v1.2.1-1"
 
@@ -142,35 +142,20 @@ def main():
     START_TIME = time.time()
 
     # SET API IP PORT AND AUTH
-    if MINER_URL == '':
-        miner_config = toml.load(str(Path.home()) + "/.lotusminer/config.toml")
-        miner_api_ip = "127.0.0.1"
-        miner_api_port = "2345"
-        # try to read configuration file to identify miner url
-        if "API" in miner_config.keys():
-            if "ListenAddress" in miner_config["API"].keys():
-                miner_api = miner_config["API"]["ListenAddress"].split("/")
-                miner_api_ip = miner_api[2].replace("0.0.0.0", "127.0.0.1")
-                miner_api_port = miner_api[4]
-        MINER_URL = "http://" + miner_api_ip + ":" + miner_api_port + "/rpc/v0"
-    if DAEMON_URL == '':
-        daemon_config = toml.load(str(Path.home()) + "/.lotus/config.toml")
-        daemon_api_ip = "127.0.0.1"
-        daemon_api_port = "1234"
-        # try to read configuration file to identify daemon url
-        if "API" in daemon_config.keys():
-            if "ListenAddress" in daemon_config["API"].keys():
-                daemon_api = daemon_config["API"]["ListenAddress"].split("/")
-                daemon_api_ip = daemon_api[2].replace("0.0.0.0", "127.0.0.1")
-                daemon_api_port = daemon_api[4]
-        DAEMON_URL = "http://" + daemon_api_ip + ":" + daemon_api_port + "/rpc/v0"
+    config = configparser.ConfigParser()
+    config.read("./config/config.conf", encoding="utf-8")
+    miner_api_ip = config.get("MINER_API", "MINER_API_IP")
+    miner_api_port = config.get("MINER_API", "MINER_API_PORT")
+    MINER_TOKEN = config.get("MINER_API", "MINER_API_TOKEN")
+    MINER_URL = "http://" + miner_api_ip + ":" + miner_api_port + "/rpc/v0"
+    print("# "+MINER_URL)
 
-    if MINER_TOKEN == '':
-        with open(str(Path.home()) + "/.lotusminer/token", "r") as text_file:
-            MINER_TOKEN = text_file.read()
-    if DAEMON_TOKEN == '':
-        with open(str(Path.home()) + "/.lotus/token", "r") as text_file:
-            DAEMON_TOKEN = text_file.read()
+    daemon_api_ip = config.get("DAEMON_API", "DAEMON_API_IP")
+    daemon_api_port = config.get("DAEMON_API", "DAEMON_API_PORT")
+    DAEMON_TOKEN = config.get("DAEMON_API", "DAEMON_API_TOKEN")
+    DAEMON_URL = "http://" + daemon_api_ip + ":" + daemon_api_port + "/rpc/v0"
+    print("# "+DAEMON_URL)
+
     #################################################################################
     # MAIN
     #################################################################################
@@ -204,13 +189,12 @@ def main():
     print("# HELP lotus_chain_sync_status return daemon sync status with chainhead for each daemon worker")
     print("# TYPE lotus_chain_sync_status  gauge")
     sync_status = daemon_get_json("SyncState", [])
-    for worker in sync_status["result"]["ActiveSyncs"]:
-        try:
-            diff_height = worker["Target"]["Height"] - worker["Base"]["Height"]
-        except Exception:
-            diff_height = -1
-        print(f'lotus_chain_sync_diff {{ miner_id="{ miner_id }", worker_id="{ sync_status["result"]["ActiveSyncs"].index(worker) }" }} { diff_height }')
-        print(f'lotus_chain_sync_status {{ miner_id="{ miner_id }", worker_id="{ sync_status["result"]["ActiveSyncs"].index(worker) }" }} { worker["Stage"]  }')
+    #for worker in sync_status["result"]["ActiveSyncs"]:
+    #    try:
+    #        diff_height = worker["Target"]["Height"] - worker[Base"]["Height"]
+    #    except Exception:
+    #        diff_height = -1
+    #    print(f'lotus_chain_sync_status {{ miner_id="{ miner_id }", worker_id="{ sync_status["result"]["ActiveSyncs"].index(worker) }" }} { worker["Stage"]  }')
     checkpoint("ChainSync")
 
     # GENERATE MINER INFO
