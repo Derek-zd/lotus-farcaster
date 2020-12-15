@@ -189,12 +189,12 @@ def main():
     print("# HELP lotus_chain_sync_status return daemon sync status with chainhead for each daemon worker")
     print("# TYPE lotus_chain_sync_status  gauge")
     sync_status = daemon_get_json("SyncState", [])
-    #for worker in sync_status["result"]["ActiveSyncs"]:
-    #    try:
-    #        diff_height = worker["Target"]["Height"] - worker[Base"]["Height"]
-    #    except Exception:
-    #        diff_height = -1
-    #    print(f'lotus_chain_sync_status {{ miner_id="{ miner_id }", worker_id="{ sync_status["result"]["ActiveSyncs"].index(worker) }" }} { worker["Stage"]  }')
+    for worker in sync_status["result"]["ActiveSyncs"]:
+        try:
+            diff_height = worker["Target"]["Height"] - worker["Base"]["Height"]
+        except Exception:
+            diff_height = -1
+        print(f'lotus_chain_sync_status {{ miner_id="{ miner_id }", worker_id="{ sync_status["result"]["ActiveSyncs"].index(worker) }" }} { worker["Stage"]  }')
     checkpoint("ChainSync")
 
     # GENERATE MINER INFO
